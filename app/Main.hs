@@ -50,12 +50,13 @@ getEnv b = do
   l <- newLogger Debug stdout
   case b of
     True ->
-      newEnv (FromFile "tslaq-user" "~/.aws/credentials") <&> set envLogger l
+      newEnv (FromFile "tslaq-user" "/home/amiri/.aws/credentials")
+        <&> set envLogger l
     False -> newEnv Discover <&> set envLogger l
 
 getAWSInfo :: IO AWSInfo
 getAWSInfo = do
-  b <- doesFileExist "~/.aws/credentials"
+  b <- doesFileExist "/home/amiri/.aws/credentials"
   e <- getEnv b
   let s3Service      = s3
   let secretsService = secretsManager
@@ -66,4 +67,4 @@ main = do
   awsInfo <- getAWSInfo
   l       <- tslaqPricesLogger
   let env = Env {envLog = l, envAWSInfo = awsInfo}
-  runReaderT (updatePrices) env
+  runReaderT updatePrices env

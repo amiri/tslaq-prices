@@ -74,9 +74,12 @@ getCurrentDate = liftIO $ getCurrentTime >>= return . utctDay
 
 updatePrices :: (MonadReader Types.Env m, MonadIO m) => m ()
 updatePrices = do
-  env         <- ask
+  env <- ask
+  liftIO $ debugM "main" "Got env"
   savedPrices <- saved
-  newPrices   <- liftIO $ downloadPrices
+  liftIO $ debugM "main" "Got savedPrices"
+  newPrices <- liftIO $ downloadPrices
+  liftIO $ debugM "main" "Got newPrices"
   currentDate <- getCurrentDate
   let combinedPrices =
         nub

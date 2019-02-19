@@ -29,16 +29,16 @@ import System.Log.Logger
 -- import Data.Fixed
 
 data AWSInfo = AWSInfo {
-  env :: Control.Monad.Trans.AWS.Env
-, region :: Region
-, s3Service :: Service
-, secretsService :: Service
-}
+    env :: Control.Monad.Trans.AWS.Env
+  , region :: Region
+  , s3Service :: Service
+  , secretsService :: Service
+  }
 
 data Env = Env {
-  envLog :: !Logger
-, envAWSInfo :: !AWSInfo
-}
+    envLog :: !Logger
+  , envAWSInfo :: !AWSInfo
+  }
 
 data Price = Price
   { day :: Day
