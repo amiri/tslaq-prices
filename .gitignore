@@ -1,0 +1,5 @@
+.stack-work/
+tslaq-prices.cabal
+*~
+config.json
+etc/

@@ -1,0 +1,6 @@
+flags: {}
+packages:
+- .
+extra-deps:
+- amazonka-secretsmanager-1.6.0
+resolver: lts-13.6
