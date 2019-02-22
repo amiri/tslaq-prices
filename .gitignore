@@ -3,3 +3,4 @@ tslaq-prices.cabal
 *~
 config.json
 etc/
+*.log

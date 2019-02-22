@@ -3,4 +3,5 @@ packages:
 - .
 extra-deps:
 - amazonka-secretsmanager-1.6.0
+- aws-easy-0.1.0.2
 resolver: lts-13.6

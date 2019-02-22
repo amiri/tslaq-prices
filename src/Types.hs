@@ -1,50 +1,47 @@
-{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
 
 module Types where
 
-import Data.Aeson
-import Data.Aeson.Types
-import qualified Data.HashMap.Strict as HM
-import Data.List (sort)
-import Data.List.Split (splitOn)
-import Data.Ord (comparing)
-import qualified Data.Text as T
-import Data.Time
-import Data.Time.Calendar (fromGregorian)
-import Data.Traversable
-import GHC.Generics
-import Control.Monad.Trans.AWS (
-    Env
-  , Region(..)
-  , Service
-  )
-import System.Log.Logger
+import           Data.Aeson                 (parseJSON, withObject, (.:))
+import           Data.Aeson.Types           (FromJSON, Parser (..), ToJSON,
+                                             Value (..))
+import qualified Data.HashMap.Strict        as HM (toList)
+import           Data.List                  (sort)
+import           Data.List.Split            (splitOn)
+import           Data.Ord                   (comparing)
+import qualified Data.Text                  as T (Text, unpack)
+import           Data.Time                  (Day)
+import           Data.Time.Calendar         (fromGregorian)
+import           Data.Traversable           (for)
+import           GHC.Generics               (Generic)
+import           Network.AWS.Easy           (TypedSession, wrapAWSService)
+import           Network.AWS.S3             (s3)
+import           Network.AWS.SecretsManager (secretsManager)
+import           System.Log.Logger          (Logger)
 
--- import Data.Time.LocalTime.TimeZone.Olson
--- import Data.Time.LocalTime.TimeZone.Series
--- import Data.Fixed
-
-data AWSInfo = AWSInfo {
-    env :: Control.Monad.Trans.AWS.Env
-  , region :: Region
-  , s3Service :: Service
-  , secretsService :: Service
-  }
+wrapAWSService 's3 "S3Service" "S3Session"
+wrapAWSService 'secretsManager "SMService" "SMSession"
 
 data Env = Env {
-    envLog :: !Logger
-  , envAWSInfo :: !AWSInfo
+    envLog         :: !Logger
+  , s3Session      :: !(TypedSession S3Service)
+  , secretsSession :: !(TypedSession SMService)
   }
 
 data Price = Price
-  { day :: Day
-  , open :: Double
-  , high :: Double
-  , low :: Double
+  { day   :: Day
+  , open  :: Double
+  , high  :: Double
+  , low   :: Double
   , close :: Double
   } deriving (Show, Generic, ToJSON)
 
@@ -64,16 +61,28 @@ instance FromJSON Price where
       close <- obj .: "close"
       return Price {..}
 
+
+data APIKey = APIKey {
+  apiKey :: T.Text
+  } deriving (Show, Generic, ToJSON)
+
+instance FromJSON APIKey where
+  parseJSON =
+    withObject "APIKey" $ \obj -> do
+      apiKey <- obj .: "key"
+      return APIKey {..}
+
+
 data SavedPrices = SavedPrices
   { lastRefreshed :: Day
-  , timeZone :: String
-  , prices :: [Price]
+  , timeZone      :: String
+  , prices        :: [Price]
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 data PriceResponse = PriceResponse
   { lastRefreshed :: Day
-  , timeZone :: String
-  , prices :: [Price]
+  , timeZone      :: String
+  , prices        :: [Price]
   } deriving (Eq, Show, Generic, ToJSON)
 
 instance FromJSON PriceResponse where

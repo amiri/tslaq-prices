@@ -41,6 +41,7 @@ dependencies:
 - monad-control
 - directory
 - mtl
+- aws-easy
 library:
   source-dirs: src
 
