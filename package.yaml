@@ -42,6 +42,8 @@ dependencies:
 - directory
 - mtl
 - aws-easy
+- pureMD5
+- filepath
 library:
   source-dirs: src
 

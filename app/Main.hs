@@ -24,13 +24,13 @@ import           Types                     (Env (..), s3Service,
 tslaqPricesLogger :: IO Logger
 tslaqPricesLogger = do
   l <- getLogger "main"
-  h <- fileHandler "tslaq-prices-debug.log" DEBUG >>= \lh ->
+  h <- fileHandler "/var/local/tslaq-prices/debug.log" DEBUG >>= \lh ->
     return $ setFormatter
       lh
       (simpleLogFormatter "[$time - $loggername - $prio] $msg")
   updateGlobalLogger "main" (setLevel DEBUG)
   updateGlobalLogger "main" (addHandler h)
-  return l
+  getLogger "main"
 
 awsRegion :: Region
 awsRegion = NorthVirginia
