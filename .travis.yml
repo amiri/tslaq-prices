@@ -31,6 +31,6 @@ deploy:
   secret_access_key:
     secure: PJcnXJiWHNxaVD/BA6xe69MMoYr8Y1EtPaPt4NaHqdhOZvoCOwGZHiiTKRa0MniYH+QfHfD166zj2c9sRm1eX8j+a/zGD/awmi7NW4GH7Byk97eP8iasNSmvHbqw4K6QXODbg4bB9VrGY5zHkWbTYXXc7EllEwm2K8uu1fkBOCzeeyHy81oapWD1qoAdrE4yoTu3FIdMvDte64YJlO9lbBH1Agavgv96SQZduV9y29VkHwi7NrTGeIqBFb/zIrX0F+pxRDVFKeGZgjqixgJtqk6Vljw+ZGxesZd9vxV6ppc6mFvOZv1wKKT4m3KCT96aB6sTaYF/uv0pYAKg680qGno5Sn9QNnCspOSg2zwN392Tvs+nSU8cEf5/e+P0Tso9ImjNwJgamK/hXBOAX+gUS2eZtwRcKMnrD3i1WrqSyL+6/VaCnB2iLqKVS/yPuwH2xpz19nbMPhDvpB7q3L+04jXEJErikpnLcP/dgR5/BrS6SL06w7UL4vIhK0tkDk2wvYk80IY5AyTDrRke3FLsPqhrgRFK/dq7ZTjdesaV7e3r0q1YHWZQOGuxYFknqae6Sr+uSi9GdsApfXAgh4/gPEt98zxah+Szjd43Igu5DrX8JUitaiInrTCxw/7g0knoURy7vTHU30NWm9OXSDe4YzgvmeAq5S86BNLe+sUzBIw=
   bucket: "tslaq-deployments"
-  key: tslaq-prices/tslaq-prices.zip
+  key: tslaq-prices
   application: tslaq-prices
   deployment_group: tslaq
