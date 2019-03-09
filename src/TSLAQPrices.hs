@@ -34,7 +34,6 @@ import           Data.Text.Lazy.Encoding    (encodeUtf8)
 import           Data.Time                  (Day, defaultTimeLocale, formatTime,
                                              fromGregorian, getCurrentTime,
                                              utctDay)
-import           Debug.Trace                (traceM)
 import           Network.AWS                (send)
 import           Network.AWS.Data.Body      (toBody)
 import           Network.AWS.Easy           (withAWS)
@@ -73,7 +72,6 @@ importLatestJSONFile
 importLatestJSONFile = do
   env    <- ask
   latest <- liftIO $ getLatestJSONFile
-  traceM ("Latest: " ++ (show latest))
   case latest of
     Nothing -> return Nothing
     Just f  -> return $ readJSONFile $ Just (localPricesFolder ++ "/" ++ f)
@@ -96,9 +94,7 @@ updatePrices :: (MonadReader Types.Env m, MonadIO m) => m ()
 updatePrices = do
   env         <- ask
   savedPrices <- saved
-  traceM ("Saved: " ++ (show savedPrices))
   newPrices <- downloadPrices
-  traceM ("New : " ++ (show newPrices))
   currentDate <- getCurrentDate
   let combinedPrices =
         filter (\p -> (day p) /= fromGregorian 1970 1 1)
@@ -178,4 +174,3 @@ getFormattedTime f = do
 
 getCurrentDate :: (MonadReader Types.Env m, MonadIO m) => m Day
 getCurrentDate = liftIO $ getCurrentTime >>= return . utctDay
-
