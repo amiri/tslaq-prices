@@ -19,7 +19,7 @@ script:
 before_deploy:
   - zip -r $TRAVIS_COMMIT *
   - mkdir -p upload
-  - mv latest.zip upload/$TRAVIS_COMMIT.zip
+  - mv $TRAVIS_COMMIT.zip upload/$TRAVIS_COMMIT.zip
 deploy:
 - provider: s3
   access_key_id: $ACCESS_KEY_ID
