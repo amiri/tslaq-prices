@@ -6,7 +6,7 @@ files:
 
 hooks:
     BeforeInstall:
-      - location: etc/deploy-hooks/install-chef
+      - location: etc/deploy-hooks/install-chef.sh
         timeout: 1800
         runas: root
     ApplicationStart:
