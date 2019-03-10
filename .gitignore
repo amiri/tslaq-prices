@@ -2,6 +2,5 @@
 tslaq-prices.cabal
 *~
 *.log
-/cookbooks
 /tmp
-/chef-cache
+chef-cache
