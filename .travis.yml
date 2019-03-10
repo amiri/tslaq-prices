@@ -29,6 +29,7 @@ deploy:
   local_dir: upload
   bucket: tslaq-deployments
   upload-dir: tslaq-prices
+  dot_match: true
   acl: private
   on:
     repo: amiri/tslaq-prices

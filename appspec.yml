@@ -3,3 +3,12 @@ os: linux
 files:
   - source: ./
     destination: /tmp/deployments/tslaq-prices
+
+hooks:
+    BeforeInstall:
+      - location: etc/deploy-hooks/install-chef
+        timeout: 1800
+        runas: root
+    ApplicationStart:
+      - location: etc/deploy_hooks/chef-solo.sh
+        runas: root
