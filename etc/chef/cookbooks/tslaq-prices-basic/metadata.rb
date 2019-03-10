@@ -5,7 +5,11 @@ license 'All Rights Reserved'
 description 'Installs/Configures tslaq-prices'
 long_description 'Installs/Configures tslaq-prices'
 version '0.1.0'
-chef_version '>= 13.0'
+chef_version '>= 12.14.60'
+depends 'directory'
+depends 'cron_d'
+depends 'user'
+depends 'group'
 
 # The `issues_url` points to the location where issues for this cookbook are
 # tracked.  A `View Issues` link will be displayed on this cookbook's page when

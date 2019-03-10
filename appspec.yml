@@ -10,5 +10,5 @@ hooks:
         timeout: 1800
         runas: root
     ApplicationStart:
-      - location: etc/deploy-hooks/chef-solo.sh
+      - location: etc/deploy-hooks/chef-client-local.sh
         runas: root
