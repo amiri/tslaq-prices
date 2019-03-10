@@ -17,6 +17,7 @@ install:
 script:
 - stack --no-terminal test --haddock --no-haddock-deps
 before_deploy:
+  - ls -lastr
   - zip -r $TRAVIS_COMMIT *
   - mkdir -p upload
   - mv $TRAVIS_COMMIT.zip upload/$TRAVIS_COMMIT.zip
