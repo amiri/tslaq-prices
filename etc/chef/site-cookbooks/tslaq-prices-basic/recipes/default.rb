@@ -1,0 +1,34 @@
+#
+# Cookbook:: tslaq-prices-basic
+# Recipe:: default
+#
+# Copyright:: 2019, The Authors, All Rights Reserved.
+
+group 'tslaq' do
+  gid    2016
+end
+
+user 'tslaq' do
+  comment 'TSLAQ User'
+  uid 2016
+  gid 2016
+  home '/home/tslaq'
+  shell '/bin/bash'
+end
+
+directory '/var/local/tslaq-prices/bin' do
+  owner 'tslaq'
+  group 'tslaq'
+  mode '0755'
+  recursive true
+  action :create
+end
+
+cron_d 'download-prices' do
+  action :create
+  minute '0'
+  hour '0'
+  user 'tslaq'
+  mailto 'amiribarksdale@gmail.com'
+  command "/var/local/tslaq-prices/bin/tslaq-prices"
+end
