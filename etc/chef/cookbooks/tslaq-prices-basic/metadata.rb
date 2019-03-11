@@ -1,15 +1,13 @@
 name 'tslaq-prices-basic'
-maintainer 'Amiri Barksdale'
-maintainer_email 'amiribarksdale@gmail.com'
+maintainer 'The Authors'
+maintainer_email 'you@example.com'
 license 'All Rights Reserved'
-description 'Installs/Configures tslaq-prices'
-long_description 'Installs/Configures tslaq-prices'
+description 'Installs/Configures tslaq-prices-basic'
+long_description 'Installs/Configures tslaq-prices-basic'
 version '0.1.0'
-chef_version '>= 12.14.60'
-depends 'directory'
-depends 'cron_d'
-depends 'user'
-depends 'group'
+chef_version '>= 12.0'
+depends 'cron'
+
 
 # The `issues_url` points to the location where issues for this cookbook are
 # tracked.  A `View Issues` link will be displayed on this cookbook's page when
