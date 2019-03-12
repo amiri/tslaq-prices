@@ -16,14 +16,14 @@ install:
 - stack --no-terminal --install-ghc test --only-dependencies
 script:
 - stack --no-terminal test --haddock --no-haddock-deps
--
+- 
 before_deploy:
-  - zip -r $TRAVIS_COMMIT .
-  - mkdir -p upload
-  - mv $TRAVIS_COMMIT.zip upload/$TRAVIS_COMMIT.zip
+- zip -r $TRAVIS_COMMIT .
+- mkdir -p upload
+- mv $TRAVIS_COMMIT.zip upload/$TRAVIS_COMMIT.zip
 deploy:
 - provider: s3
-  access_key_id: $ACCESS_KEY_ID
+  access_key_id: "$ACCESS_KEY_ID"
   secret_access_key:
     secure: PJcnXJiWHNxaVD/BA6xe69MMoYr8Y1EtPaPt4NaHqdhOZvoCOwGZHiiTKRa0MniYH+QfHfD166zj2c9sRm1eX8j+a/zGD/awmi7NW4GH7Byk97eP8iasNSmvHbqw4K6QXODbg4bB9VrGY5zHkWbTYXXc7EllEwm2K8uu1fkBOCzeeyHy81oapWD1qoAdrE4yoTu3FIdMvDte64YJlO9lbBH1Agavgv96SQZduV9y29VkHwi7NrTGeIqBFb/zIrX0F+pxRDVFKeGZgjqixgJtqk6Vljw+ZGxesZd9vxV6ppc6mFvOZv1wKKT4m3KCT96aB6sTaYF/uv0pYAKg680qGno5Sn9QNnCspOSg2zwN392Tvs+nSU8cEf5/e+P0Tso9ImjNwJgamK/hXBOAX+gUS2eZtwRcKMnrD3i1WrqSyL+6/VaCnB2iLqKVS/yPuwH2xpz19nbMPhDvpB7q3L+04jXEJErikpnLcP/dgR5/BrS6SL06w7UL4vIhK0tkDk2wvYk80IY5AyTDrRke3FLsPqhrgRFK/dq7ZTjdesaV7e3r0q1YHWZQOGuxYFknqae6Sr+uSi9GdsApfXAgh4/gPEt98zxah+Szjd43Igu5DrX8JUitaiInrTCxw/7g0knoURy7vTHU30NWm9OXSDe4YzgvmeAq5S86BNLe+sUzBIw=
   skip_cleanup: true
@@ -35,7 +35,7 @@ deploy:
   on:
     repo: amiri/tslaq-prices
 - provider: codedeploy
-  access_key_id: $ACCESS_KEY_ID
+  access_key_id: "$ACCESS_KEY_ID"
   secret_access_key:
     secure: PJcnXJiWHNxaVD/BA6xe69MMoYr8Y1EtPaPt4NaHqdhOZvoCOwGZHiiTKRa0MniYH+QfHfD166zj2c9sRm1eX8j+a/zGD/awmi7NW4GH7Byk97eP8iasNSmvHbqw4K6QXODbg4bB9VrGY5zHkWbTYXXc7EllEwm2K8uu1fkBOCzeeyHy81oapWD1qoAdrE4yoTu3FIdMvDte64YJlO9lbBH1Agavgv96SQZduV9y29VkHwi7NrTGeIqBFb/zIrX0F+pxRDVFKeGZgjqixgJtqk6Vljw+ZGxesZd9vxV6ppc6mFvOZv1wKKT4m3KCT96aB6sTaYF/uv0pYAKg680qGno5Sn9QNnCspOSg2zwN392Tvs+nSU8cEf5/e+P0Tso9ImjNwJgamK/hXBOAX+gUS2eZtwRcKMnrD3i1WrqSyL+6/VaCnB2iLqKVS/yPuwH2xpz19nbMPhDvpB7q3L+04jXEJErikpnLcP/dgR5/BrS6SL06w7UL4vIhK0tkDk2wvYk80IY5AyTDrRke3FLsPqhrgRFK/dq7ZTjdesaV7e3r0q1YHWZQOGuxYFknqae6Sr+uSi9GdsApfXAgh4/gPEt98zxah+Szjd43Igu5DrX8JUitaiInrTCxw/7g0knoURy7vTHU30NWm9OXSDe4YzgvmeAq5S86BNLe+sUzBIw=
   bucket: tslaq-deployments
@@ -44,3 +44,6 @@ deploy:
   application: tslaq-prices
   deployment_group: tslaq
   wait_until_deployed: true
+env:
+  global:
+    secure: LQ3zlQIqiBIHJlEYgOF6rT0Cb8sBnhNgkZsbOw3V1yhHEItxyLZ1nnD02xCSdwvE3C0CZ6/Mmzz2rObzgWBS1HXncEnpFSX5D/uRaNXlV/st30VLLM21i3vyuccpAfIpDvBcfx+R0O+xE7DCi2g7OfkKSriBE19t/Pj7pAEqaNUNYJq714b11tjsu2aaZj2hJ0P1krvbvKMxpgSVufaxpYcfieEyZLbyqZOpYTwHq5RENGlFxcQh+4TyqkTYFXAK3BPFN7sTx59LmMvgvDeFqh4yiC3RiwnIDYvv8k91q31q9327qR3ybKab1jd7XT/JBPAxEQW3hBkObWVSrw0trHkYSwNWMVLCnBkYvDcS+eaSC8OYxiC3/WiYJWjonFk/K3KtbvJBx4nGO2IPcuS7EJia9vHUZNfmHp5KC2zB8V2Hga9hxPcRDHcXEj6oZoItiEVRoVs8y2h0TyPOoefjBVHlHbLIMsiws6xGsO7xdXsTznUiySaS+h+SnSGqsrjqYA+rZcsBx7kqBlby9S+lhKJ19MgutAKH8Tde5QhTgdyUCFQCXWRGMnQ1IaxtpqAYHcc8Z1u8qgP9VtdTZBjTqpdhFyEGNYpziTUQWgQJRnRh6xGBn3MZrVh9dOKjWhJQjnkbJFbwYl1OZgpSkNoGm60EdFMuxFZbls2w/BdFIKk=
