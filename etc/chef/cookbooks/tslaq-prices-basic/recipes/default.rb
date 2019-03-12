@@ -16,11 +16,27 @@ user 'tslaq' do
   shell '/bin/bash'
 end
 
+directory '/var/local/tslaq-prices/' do
+  owner 'tslaq'
+  group 'tslaq'
+  mode '0755'
+  recursive true
+  action :create
+end
+
 directory '/var/local/tslaq-prices/bin' do
   owner 'tslaq'
   group 'tslaq'
   mode '0755'
   recursive true
+  action :create
+end
+
+remote_file '/var/local/tslaq-prices/bin/tslaq-prices' do
+  source 'file:///tmp/deployments/tslaq-prices/.stack-work/install/x86_64-linux/lts-13.6/8.6.3/bin/tslaq-prices-exe'
+  owner 'tslaq'
+  group 'tslaq'
+  mode '0755'
   action :create
 end
 
@@ -30,5 +46,6 @@ cron_d 'download-prices' do
   hour '0'
   user 'tslaq'
   mailto 'amiribarksdale@gmail.com'
-  command "/var/local/tslaq-prices/bin/tslaq-prices"
+  command '/var/local/tslaq-prices/bin/tslaq-prices'
 end
+
