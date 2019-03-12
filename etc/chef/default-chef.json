@@ -1,6 +1,6 @@
 {
   "run_list": [
-      "recipe[hostnames::default]",
+      "recipe[hostname::default]",
       "recipe[tslaq-prices-basic]"
   ],
   "set_fqdn": "tslaq-event-tracker.org"
