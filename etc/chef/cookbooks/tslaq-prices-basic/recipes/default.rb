@@ -32,5 +32,3 @@ cron_d 'download-prices' do
   mailto 'amiribarksdale@gmail.com'
   command "/var/local/tslaq-prices/bin/tslaq-prices"
 end
-
-hostname 'tslaq-event-tracker.org'
