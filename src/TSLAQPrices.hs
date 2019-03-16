@@ -4,16 +4,9 @@
 {-# LANGUAGE OverloadedStrings     #-}
 
 module TSLAQPrices
-  ( downloadPrices
-  , updatePrices
-  , saved
-  , getCurrentDate
-  , getApiKey
-  , importLatestJSONFile
+  ( updatePrices
   , getLatestJSONFile
-  , getFormattedTime
-  , readJSONFile
-  , emptyPrices
+  , localPricesFolder
   ) where
 
 import           Control.Lens
@@ -94,7 +87,7 @@ updatePrices :: (MonadReader Types.Env m, MonadIO m) => m ()
 updatePrices = do
   env         <- ask
   savedPrices <- saved
-  newPrices <- downloadPrices
+  newPrices   <- downloadPrices
   currentDate <- getCurrentDate
   let combinedPrices =
         filter (\p -> (day p) /= fromGregorian 1970 1 1)

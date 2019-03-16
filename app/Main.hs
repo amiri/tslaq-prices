@@ -8,23 +8,27 @@ module Main where
 import           Control.Lens              ((&), (.~))
 import           Control.Monad.Reader
 import           Control.Monad.Trans.AWS   (Credentials (..), Region (..))
+import           Data.Maybe                (fromMaybe)
 import           Network.AWS.Easy          (AWSConfig, Endpoint (..), awsConfig,
                                             awscCredentials, connect)
+import           System.Console.GetOpt
 import           System.Directory          (doesFileExist)
+import           System.Environment
 import           System.Log.Formatter      (simpleLogFormatter)
 import           System.Log.Handler        (setFormatter)
 import           System.Log.Handler.Simple (fileHandler)
 import           System.Log.Logger         (Logger, Priority (..), addHandler,
                                             getLogger, removeAllHandlers,
                                             setLevel, updateGlobalLogger)
-import           TSLAQPrices               (updatePrices)
+import           TSLAQPrices               (getLatestJSONFile,
+                                            localPricesFolder, updatePrices)
 import           Types                     (Env (..), s3Service,
                                             secretsManagerService)
 
 tslaqPricesLogger :: IO Logger
 tslaqPricesLogger = do
   l <- getLogger "main"
-  h <- fileHandler "/var/local/tslaq-prices/debug.log" DEBUG >>= \lh ->
+  h <- fileHandler (localPricesFolder ++ "debug.log") DEBUG >>= \lh ->
     return $ setFormatter
       lh
       (simpleLogFormatter "[$time - $loggername - $prio] $msg")
@@ -49,13 +53,37 @@ getAWSConfig = do
   let c     = awsConfig r & awscCredentials .~ creds
   return c
 
+data Options = Options
+  { optGetLatest :: Bool
+  }
+
+defaultOptions :: Options
+defaultOptions = Options {optGetLatest = False}
+
+options :: [OptDescr (Options -> IO Options)]
+options =
+  [ Option "l"
+           ["latest"]
+           (NoArg $ \o -> return o { optGetLatest = True })
+           "Get latest price file"
+  ]
+
 main :: IO ()
 main = do
+  args <- getArgs
+  let (actions, _, _) = getOpt RequireOrder options args
+  opts <- foldl (>>=) (return defaultOptions) actions
+  let Options { optGetLatest = latest } = opts
   l              <- tslaqPricesLogger
   c              <- getAWSConfig
   s3Session      <- connect c s3Service
   secretsSession <- connect c secretsManagerService
   let env =
         Env {envLog = l, s3Session = s3Session, secretsSession = secretsSession}
-  runReaderT updatePrices env
+  case latest of
+    True -> do
+      l <- getLatestJSONFile
+      let l' = fromMaybe "" l
+      putStrLn $ show l'
+    False -> runReaderT updatePrices env
   removeAllHandlers
