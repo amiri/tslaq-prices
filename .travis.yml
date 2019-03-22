@@ -42,5 +42,5 @@ deploy:
   bundle_type: zip
   key: tslaq-prices/$TRAVIS_COMMIT.zip
   application: tslaq-prices
-  deployment_group: tslaq
+  deployment_group: tslaq-prices
   wait_until_deployed: true
