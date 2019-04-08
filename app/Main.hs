@@ -84,6 +84,6 @@ main = do
     True -> do
       l <- getLatestJSONFile
       let l' = fromMaybe "" l
-      putStr $ show l'
+      putStr l'
     False -> runReaderT updatePrices env
   removeAllHandlers
