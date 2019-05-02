@@ -4,6 +4,8 @@
 #
 # Copyright:: 2019, The Authors, All Rights Reserved.
 
+apt_package 'tzdata'
+
 group 'tslaq' do
   gid    2016
 end

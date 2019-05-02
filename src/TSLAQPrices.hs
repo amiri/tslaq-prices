@@ -7,42 +7,78 @@ module TSLAQPrices
   ( updatePrices
   , getLatestJSONFile
   , localPricesFolder
+  , saved
+  , emptyPrices
   ) where
 
 import           Control.Lens
 
-import           Control.Monad              (void)
-import           Control.Monad.IO.Class     (MonadIO, liftIO)
-import           Control.Monad.Reader       (MonadReader, ask)
-import           Data.Aeson                 (decode, encode)
-import qualified Data.ByteString.Lazy       as B (ByteString, readFile,
-                                                  writeFile)
-import           Data.Digest.Pure.MD5       (MD5Digest (..), md5)
-import           Data.List                  (nub, sortBy)
-import           Data.Maybe                 (fromJust)
-import           Data.Ord                   (comparing)
-import           Data.Text                  (Text)
-import           Data.Text.Lazy             (fromStrict)
-import           Data.Text.Lazy.Encoding    (encodeUtf8)
-import           Data.Time                  (Day, defaultTimeLocale, formatTime,
-                                             fromGregorian, getCurrentTime,
-                                             utctDay)
-import           Network.AWS                (send)
-import           Network.AWS.Data.Body      (toBody)
-import           Network.AWS.Easy           (withAWS)
-import           Network.AWS.S3             (BucketName (..), ObjectKey (..),
-                                             listObjects, lorsContents,
-                                             putObject)
-import           Network.AWS.SecretsManager (getSecretValue, gsvrsSecretString)
-import           Network.Wreq               (Options, defaults, getWith, param,
-                                             responseBody)
-import           System.Directory           (getModificationTime, listDirectory)
-import           System.FilePath            (takeExtension)
-import           System.Log.Logger          (Priority (..), logL)
-import           Types                      (APIKey (..), Env (..), Price (..),
-                                             PriceResponse (..), S3Session (..),
-                                             SMSession (..), SavedPrices (..))
+import           Control.Monad                       (void)
+import           Control.Monad.IO.Class              (MonadIO, liftIO)
+import           Control.Monad.Reader                (MonadReader, ask)
+import           Data.Aeson                          (decode, encode)
+import qualified Data.ByteString.Lazy                as B (ByteString, readFile,
+                                                           writeFile)
+import           Data.Digest.Pure.MD5                (MD5Digest (..), md5)
+import           Data.List                           (nub, sortBy)
+import           Data.Maybe                          (fromJust)
+import           Data.Ord                            (comparing)
+import           Data.Text                           (Text)
+import           Data.Text.Lazy                      (fromStrict)
+import           Data.Text.Lazy.Encoding             (encodeUtf8)
+import           Data.Time                           (UTCTime (..),
+                                                      defaultTimeLocale,
+                                                      formatTime, fromGregorian,
+                                                      getCurrentTime)
+import           Data.Time.LocalTime.TimeZone.Series (TimeZoneSeries,
+                                                      localTimeToUTC')
+import           Network.AWS                         (send)
+import           Network.AWS.Data.Body               (toBody)
+import           Network.AWS.Easy                    (withAWS)
+import           Network.AWS.S3                      (BucketName (..),
+                                                      ObjectKey (..),
+                                                      listObjects, lorsContents,
+                                                      putObject)
+import           Network.AWS.SecretsManager          (getSecretValue,
+                                                      gsvrsSecretString)
+import           Network.Wreq                        (Options, defaults,
+                                                      getWith, param,
+                                                      responseBody)
+import           System.Directory                    (getModificationTime,
+                                                      listDirectory)
+import           System.FilePath                     (takeExtension)
+import           System.Log.Logger                   (Priority (..), logL)
+import           Types                               (APIKey (..), Env (..),
+                                                      PartialPrice (..),
+                                                      PartialPriceResponse (..),
+                                                      Price (..),
+                                                      PriceResponse (..),
+                                                      S3Session (..),
+                                                      SMSession (..),
+                                                      SavedPrices (..))
 
+convertPartialPrices :: TimeZoneSeries -> PartialPriceResponse -> PriceResponse
+convertPartialPrices tzs pp =
+  let lr  = localTimeToUTC' tzs (lastRefreshed (pp :: PartialPriceResponse))
+      tz  = "UTC"
+      sym = ticker (pp :: PartialPriceResponse)
+      np  = map
+        ( \p -> Price
+          { priceTime = localTimeToUTC' tzs (partialTime p)
+          , open      = open (p :: PartialPrice)
+          , high      = high (p :: PartialPrice)
+          , low       = low (p :: PartialPrice)
+          , close     = close (p :: PartialPrice)
+          , volume    = volume (p :: PartialPrice)
+          }
+        )
+        (partialPrices pp)
+  in  PriceResponse
+        { lastRefreshed = lr
+        , ticker        = sym
+        , timeZone      = tz
+        , prices        = np
+        }
 
 getLatestJSONFile :: IO (Maybe FilePath)
 getLatestJSONFile = do
@@ -71,7 +107,7 @@ importLatestJSONFile = do
 
 emptyPrices :: B.ByteString
 emptyPrices = encodeUtf8
-  ( "{\"lastRefreshed\":\"1970-01-01\", \"timeZone\": \"EST\", \"prices\":[{\"low\":0.0,\"close\":0.0,\"open\":0.0,\"day\":\"1970-01-01\",\"high\":0.0}]}"
+  ( "{\"lastRefreshed\":\"1970-01-01T00:00:00Z\",\"timeZone\":\"UTC\",\"prices\":[{\"priceTime\":\"1970-01-01T00:00:00Z\",\"open\":0.00,\"high\":0.00,\"low\":0.00,\"close\":0.00,\"volume\":0.00}]}"
   )
 
 saved :: (MonadReader Types.Env m, MonadIO m) => m (SavedPrices)
@@ -85,16 +121,19 @@ saved = do
 
 updatePrices :: (MonadReader Types.Env m, MonadIO m) => m ()
 updatePrices = do
-  env         <- ask
+  env <- ask
+  let tzs' = tzs env
   savedPrices <- saved
   newPrices   <- downloadPrices
-  currentDate <- getCurrentDate
+  currentTime <- liftIO $ getCurrentTime
+  let new' = convertPartialPrices tzs' (fromJust newPrices)
   let combinedPrices =
-        filter (\p -> (day p) /= fromGregorian 1970 1 1)
+        filter (\p -> (priceTime p) /= UTCTime (fromGregorian 1970 1 1) 0)
           $  nub
           $  (prices (savedPrices :: SavedPrices))
-          ++ (prices (fromJust $ newPrices :: PriceResponse))
-  let updatedPrices = SavedPrices currentDate "EST" combinedPrices
+          ++ (prices (new' :: PriceResponse))
+  let updatedPrices = SavedPrices currentTime "UTC" combinedPrices
+  liftIO $ print updatedPrices
   let u             = encode updatedPrices
   let h             = md5 u
   let localFilename = localPricesFolder ++ "prices-" ++ (show h) ++ ".json"
@@ -106,9 +145,11 @@ downloadOpts :: Text -> Bool -> Options
 downloadOpts k getFull =
   defaults
     &  param "function"
-    .~ ["TIME_SERIES_DAILY_ADJUSTED"]
+    .~ ["TIME_SERIES_INTRADAY"]
     &  param "symbol"
     .~ ["TSLA"]
+    &  param "interval"
+    .~ ["60min"]
     &  param "outputsize"
     .~ [s]
     &  param "apikey"
@@ -134,13 +175,14 @@ uploadToS3 b f h = withAWS $ do
   void $ send (putObject b (ObjectKey (read (show k) :: Text)) body)
 
 downloadPrices
-  :: (MonadReader Types.Env m, MonadIO m) => m (Maybe PriceResponse)
+  :: (MonadReader Types.Env m, MonadIO m) => m (Maybe PartialPriceResponse)
 downloadPrices = do
   env     <- ask
   k       <- liftIO $ getApiKey "alphavantage" (secretsSession env)
   getFull <- liftIO $ noSavedPrices tslaqPricesBucket (s3Session env)
   res     <- liftIO $ getWith (downloadOpts k getFull) baseUrl
-  return $ decode (res ^. responseBody)
+  liftIO $ print res
+  pure $ decode (res ^. responseBody)
 
 baseUrl :: String
 baseUrl = "https://www.alphavantage.co/query"
@@ -164,6 +206,3 @@ getFormattedTime f = do
   mt <- getModificationTime f
   let mt' = formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S %Z" mt
   return mt'
-
-getCurrentDate :: (MonadReader Types.Env m, MonadIO m) => m Day
-getCurrentDate = liftIO $ getCurrentTime >>= return . utctDay

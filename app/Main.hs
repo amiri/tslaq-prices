@@ -5,25 +5,31 @@
 
 module Main where
 
-import           Control.Lens              ((&), (.~))
+import           Control.Lens                       ((&), (.~))
 import           Control.Monad.Reader
-import           Control.Monad.Trans.AWS   (Credentials (..), Region (..))
-import           Data.Maybe                (fromMaybe)
-import           Network.AWS.Easy          (AWSConfig, Endpoint (..), awsConfig,
-                                            awscCredentials, connect)
+import           Control.Monad.Trans.AWS            (Credentials (..),
+                                                     Region (..))
+import           Data.Maybe                         (fromMaybe)
+import           Data.Time.LocalTime.TimeZone.Olson (getTimeZoneSeriesFromOlsonFile)
+import           Network.AWS.Easy                   (AWSConfig, Endpoint (..),
+                                                     awsConfig, awscCredentials,
+                                                     connect)
 import           System.Console.GetOpt
-import           System.Directory          (doesFileExist)
+import           System.Directory                   (doesFileExist)
 import           System.Environment
-import           System.Log.Formatter      (simpleLogFormatter)
-import           System.Log.Handler        (setFormatter)
-import           System.Log.Handler.Simple (fileHandler)
-import           System.Log.Logger         (Logger, Priority (..), addHandler,
-                                            getLogger, removeAllHandlers,
-                                            setLevel, updateGlobalLogger)
-import           TSLAQPrices               (getLatestJSONFile,
-                                            localPricesFolder, updatePrices)
-import           Types                     (Env (..), s3Service,
-                                            secretsManagerService)
+import           System.Log.Formatter               (simpleLogFormatter)
+import           System.Log.Handler                 (setFormatter)
+import           System.Log.Handler.Simple          (fileHandler)
+import           System.Log.Logger                  (Logger, Priority (..),
+                                                     addHandler, getLogger,
+                                                     removeAllHandlers,
+                                                     setLevel,
+                                                     updateGlobalLogger)
+import           TSLAQPrices                        (getLatestJSONFile,
+                                                     localPricesFolder,
+                                                     updatePrices)
+import           Types                              (Env (..), s3Service,
+                                                     secretsManagerService)
 
 tslaqPricesLogger :: IO Logger
 tslaqPricesLogger = do
@@ -78,8 +84,13 @@ main = do
   c              <- getAWSConfig
   s3Session      <- connect c s3Service
   secretsSession <- connect c secretsManagerService
-  let env =
-        Env {envLog = l, s3Session = s3Session, secretsSession = secretsSession}
+  tzs' <- getTimeZoneSeriesFromOlsonFile ("/usr/share/zoneinfo/US/Eastern")
+  let env = Env
+        { envLog         = l
+        , s3Session      = s3Session
+        , secretsSession = secretsSession
+        , tzs            = tzs'
+        }
   case latest of
     True -> do
       l <- getLatestJSONFile

@@ -44,6 +44,7 @@ dependencies:
 - aws-easy
 - pureMD5
 - filepath
+- transformers
 library:
   source-dirs: src
 
