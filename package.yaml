@@ -57,7 +57,7 @@ executables:
   tslaq-prices-exe:
     main:                Main.hs
     source-dirs:         app
-    ghc-options: '-ferror-spans -Werror -Wall -threaded -rtsopts "-with-rtsopts=-N -T -xc"'
+    ghc-options: '-ferror-spans -Werror -Wall -threaded -rtsopts "-with-rtsopts=-N -T"'
     dependencies:
     - tslaq-prices
 
@@ -65,6 +65,6 @@ tests:
   tslaq-prices-test:
     main:                Spec.hs
     source-dirs:         test
-    ghc-options: '-ferror-spans -Werror -Wall -threaded -rtsopts "-with-rtsopts=-N -T -xc"'
+    ghc-options: '-ferror-spans -Werror -Wall -threaded -rtsopts "-with-rtsopts=-N -T"'
     dependencies:
     - tslaq-prices
