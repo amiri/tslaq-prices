@@ -16,7 +16,7 @@ install:
 - stack --no-terminal --install-ghc test --only-dependencies
 script:
 - stack --no-terminal test --haddock --no-haddock-deps
-- 
+-
 before_deploy:
 - zip -r $TRAVIS_COMMIT .
 - mkdir -p upload

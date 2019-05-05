@@ -35,7 +35,7 @@ directory '/var/local/tslaq-prices/bin' do
 end
 
 remote_file '/var/local/tslaq-prices/bin/tslaq-prices' do
-  source 'file:///tmp/deployments/tslaq-prices/.stack-work/install/x86_64-linux/lts-13.6/8.6.3/bin/tslaq-prices-exe'
+  source 'file:///tmp/deployments/tslaq-prices/.stack-work/install/x86_64-linux/lts-13.19/8.6.4/Bin/tslaq-prices-exe'
   owner 'tslaq'
   group 'tslaq'
   mode '0755'
@@ -45,9 +45,9 @@ end
 cron_d 'download-prices' do
   action :create
   minute '0'
-  hour '0'
+  hour '*/3'
+  weekday '1,2,3,4,5'
   user 'tslaq'
   mailto 'amiribarksdale@gmail.com'
   command '/var/local/tslaq-prices/bin/tslaq-prices'
 end
-

@@ -22,29 +22,34 @@ description:         Please see the README on GitHub at <https://github.com/amir
 dependencies:
 - base >= 4.7 && < 5
 - aeson
-- wreq
-- lens
-- lens-aeson
-- text
-- time
-- unordered-containers
-- bytestring
-- split
-- timezone-olson
-- timezone-series
 - amazonka
 - amazonka-core
-- amazonka-secretsmanager
 - amazonka-s3
-- hslogger
-- resourcet
-- monad-control
-- directory
-- mtl
+- amazonka-secretsmanager
 - aws-easy
-- pureMD5
+- bytestring
+- cassava
+- conduit
+- containers
+- directory
 - filepath
+- hslogger
+- lens
+- lens-aeson
+- monad-control
+- mtl
+- pureMD5
+- resourcet
+- safe
+- split
+- text
+- time
+- timezone-olson
+- timezone-series
 - transformers
+- unordered-containers
+- wreq
+- zip
 library:
   source-dirs: src
 
@@ -52,10 +57,7 @@ executables:
   tslaq-prices-exe:
     main:                Main.hs
     source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+    ghc-options: '-ferror-spans -Werror -Wall -threaded -rtsopts "-with-rtsopts=-N -T -xc"'
     dependencies:
     - tslaq-prices
 
@@ -63,9 +65,6 @@ tests:
   tslaq-prices-test:
     main:                Spec.hs
     source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+    ghc-options: '-ferror-spans -Werror -Wall -threaded -rtsopts "-with-rtsopts=-N -T -xc"'
     dependencies:
     - tslaq-prices

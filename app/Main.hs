@@ -14,6 +14,8 @@ import           Data.Time.LocalTime.TimeZone.Olson (getTimeZoneSeriesFromOlsonF
 import           Network.AWS.Easy                   (AWSConfig, Endpoint (..),
                                                      awsConfig, awscCredentials,
                                                      connect)
+import           Prelude                            (pure, Bool (..), IO, foldl,
+                                                     putStr, return, ($), (++))
 import           System.Console.GetOpt
 import           System.Directory                   (doesFileExist)
 import           System.Environment
@@ -25,15 +27,17 @@ import           System.Log.Logger                  (Logger, Priority (..),
                                                      removeAllHandlers,
                                                      setLevel,
                                                      updateGlobalLogger)
-import           TSLAQPrices                        (getLatestJSONFile,
+import           TSLAQPrices                        (getLatestJSONFileRemote,
+                                                     importAlgoSeek,
                                                      localPricesFolder,
+                                                     tslaqPricesBucket,
                                                      updatePrices)
 import           Types                              (Env (..), s3Service,
                                                      secretsManagerService)
 
 tslaqPricesLogger :: IO Logger
 tslaqPricesLogger = do
-  l <- getLogger "main"
+  _ <- getLogger "main"
   h <- fileHandler (localPricesFolder ++ "debug.log") DEBUG >>= \lh ->
     return $ setFormatter
       lh
@@ -60,11 +64,12 @@ getAWSConfig = do
   return c
 
 data Options = Options
-  { optGetLatest :: Bool
+  { optGetLatest      :: Bool
+  , optImportAlgoSeek :: Bool
   }
 
 defaultOptions :: Options
-defaultOptions = Options {optGetLatest = False}
+defaultOptions = Options {optGetLatest = False, optImportAlgoSeek = False}
 
 options :: [OptDescr (Options -> IO Options)]
 options =
@@ -72,29 +77,43 @@ options =
            ["latest"]
            (NoArg $ \o -> return o { optGetLatest = True })
            "Get latest price file"
+  , Option "i"
+           ["import"]
+           (NoArg $ \o -> return o { optImportAlgoSeek = True })
+           "Import AlgoSeek data"
   ]
+
+
+constructEnv :: IO (Env)
+constructEnv = do
+  el              <- tslaqPricesLogger
+  c               <- getAWSConfig
+  s3Session'      <- connect c s3Service
+  secretsSession' <- connect c secretsManagerService
+  tzs' <- getTimeZoneSeriesFromOlsonFile ("/usr/share/zoneinfo/US/Eastern")
+  pure $ Env
+        { envLog         = el
+        , s3Session      = s3Session'
+        , secretsSession = secretsSession'
+        , tzs            = tzs'
+        }
+
 
 main :: IO ()
 main = do
   args <- getArgs
   let (actions, _, _) = getOpt RequireOrder options args
   opts <- foldl (>>=) (return defaultOptions) actions
-  let Options { optGetLatest = latest } = opts
-  l              <- tslaqPricesLogger
-  c              <- getAWSConfig
-  s3Session      <- connect c s3Service
-  secretsSession <- connect c secretsManagerService
-  tzs' <- getTimeZoneSeriesFromOlsonFile ("/usr/share/zoneinfo/US/Eastern")
-  let env = Env
-        { envLog         = l
-        , s3Session      = s3Session
-        , secretsSession = secretsSession
-        , tzs            = tzs'
-        }
-  case latest of
+  let Options { optGetLatest = latest, optImportAlgoSeek = importAS } = opts
+  env <- constructEnv
+  case importAS of
     True -> do
-      l <- getLatestJSONFile
-      let l' = fromMaybe "" l
-      putStr l'
-    False -> runReaderT updatePrices env
+      runReaderT importAlgoSeek env
+    False -> do
+      case latest of
+        True -> do
+          l <- getLatestJSONFileRemote tslaqPricesBucket (s3Session env)
+          let l' = fromMaybe "" l
+          putStr l'
+        False -> runReaderT updatePrices env
   removeAllHandlers

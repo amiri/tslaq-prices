@@ -7,3 +7,4 @@ chef_guid
 chef-cache
 *.pid
 *.out
+algoseek-data
