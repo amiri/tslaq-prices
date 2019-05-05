@@ -15,13 +15,6 @@ module TSLAQPrices
   ) where
 
 import           Control.Lens
-import           Prelude                             (Bool (..), IO, Maybe (..),
-                                                      Show (..), String (..),
-                                                      filter, head, map, null,
-                                                      pure, return, reverse,
-                                                      undefined, ($), (++),
-                                                      (/=), (==))
-
 import           Control.Monad                       (void)
 import           Control.Monad.IO.Class              (MonadIO, liftIO)
 import           Control.Monad.Reader                (MonadReader, ask)
@@ -29,10 +22,10 @@ import           Data.Aeson                          (decode, encode)
 import qualified Data.ByteString.Lazy                as B (ByteString,
                                                            writeFile)
 import           Data.Conduit.Combinators            (sinkLazy)
-import           Data.Digest.Pure.MD5                (MD5Digest (..), md5)
+import           Data.Digest.Pure.MD5                (MD5Digest, md5)
 import           Data.List                           (nub, sortBy)
-import           Data.Maybe                          (Maybe, fromJust)
-import           Data.Ord                            (Ord (..), comparing)
+import           Data.Maybe                          (fromJust)
+import           Data.Ord                            (comparing)
 import           Data.Text                           (Text, pack, unpack)
 import           Data.Text.Lazy                      (fromStrict)
 import           Data.Text.Lazy.Encoding             (encodeUtf8)
@@ -55,8 +48,13 @@ import           Network.AWS.SecretsManager          (getSecretValue,
 import           Network.Wreq                        (Options, defaults,
                                                       getWith, param,
                                                       responseBody)
-import           System.FilePath                     (FilePath (..),
-                                                      takeExtension)
+import           Prelude                             (Bool (..), IO, Maybe (..),
+                                                      Show (..), String, filter,
+                                                      head, map, null, pure,
+                                                      return, reverse,
+                                                      undefined, ($), (++),
+                                                      (/=), (==))
+import           System.FilePath                     (FilePath, takeExtension)
 import           System.Log.Logger                   (Priority (..), logL)
 import           Types                               (APIKey (..), Env (..),
                                                       PartialPrice (..),
@@ -68,13 +66,13 @@ import           Types                               (APIKey (..), Env (..),
                                                       SavedPrices (..))
 
 convertPartialPrices :: TimeZoneSeries -> PartialPriceResponse -> PriceResponse
-convertPartialPrices tzs pp =
-  let lr  = localTimeToUTC' tzs (lastRefreshed (pp :: PartialPriceResponse))
+convertPartialPrices t pp =
+  let lr  = localTimeToUTC' t (lastRefreshed (pp :: PartialPriceResponse))
       tz  = "UTC"
       sym = ticker (pp :: PartialPriceResponse)
       np  = map
         ( \p -> Price
-          { priceTime = localTimeToUTC' tzs (partialTime p)
+          { priceTime = localTimeToUTC' t (partialTime p)
           , open      = open (p :: PartialPrice)
           , high      = high (p :: PartialPrice)
           , low       = low (p :: PartialPrice)
@@ -107,7 +105,7 @@ getLatestJSONFileRemote b = withAWS $ do
         ^. lorsContents
   case os of
     [] -> pure Nothing
-    xs -> pure $ Just $ unpack (toText $ (head os) ^. oKey)
+    xs -> pure $ Just $ unpack (toText $ (head xs) ^. oKey)
 
 readJSONFileRemote :: BucketName -> FilePath -> S3Session -> IO B.ByteString
 readJSONFileRemote b f = withAWS $ do
