@@ -43,6 +43,11 @@ remote_file '/var/local/tslaq-prices/bin/tslaq-prices' do
 end
 
 cron_d 'download-prices' do
+  action :delete
+end
+
+cron_d 'tslaq-prices' do
+  action :create
   minute '0'
   hour '*/3'
   weekday '1,2,3,4,5'
