@@ -2,14 +2,14 @@
   "name": "tslaq-prices-basic",
   "description": "Installs/Configures tslaq-prices-basic",
   "long_description": "Installs/Configures tslaq-prices-basic",
-  "maintainer": "The Authors",
-  "maintainer_email": "you@example.com",
+  "maintainer": "Amiri Barksdale",
+  "maintainer_email": "amiribarksdale@gmail.com",
   "license": "All Rights Reserved",
   "platforms": {
 
   },
   "dependencies": {
-    "cron": ">= 0.0.0"
+    "cron": ">= 6.2.1"
   },
   "providing": {
 
@@ -26,7 +26,7 @@
   "privacy": false,
   "chef_versions": [
     [
-      ">= 12.0"
+      ">= 14.4"
     ]
   ],
   "ohai_versions": [
