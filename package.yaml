@@ -39,6 +39,7 @@ dependencies:
 - monad-control
 - mtl
 - pureMD5
+- regex-pcre
 - resourcet
 - safe
 - split
@@ -48,6 +49,7 @@ dependencies:
 - timezone-series
 - transformers
 - unordered-containers
+- vector
 - wreq
 - zip
 library:

@@ -14,8 +14,6 @@ import           Data.Time.LocalTime.TimeZone.Olson (getTimeZoneSeriesFromOlsonF
 import           Network.AWS.Easy                   (AWSConfig, Endpoint (..),
                                                      awsConfig, awscCredentials,
                                                      connect)
-import           Prelude                            (pure, Bool (..), IO, foldl,
-                                                     putStr, return, ($), (++))
 import           System.Console.GetOpt
 import           System.Directory                   (doesFileExist)
 import           System.Environment

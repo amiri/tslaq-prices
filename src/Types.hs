@@ -32,10 +32,6 @@ import           Network.AWS.Easy                    (TypedSession,
                                                       wrapAWSService)
 import           Network.AWS.S3                      (s3)
 import           Network.AWS.SecretsManager          (secretsManager)
-import           Prelude                             (Double, Eq (..), Int,
-                                                      Integer, Maybe (..),
-                                                      Show (..), pure, read,
-                                                      return, ($))
 import           System.Log.Logger                   (Logger)
 
 wrapAWSService 's3 "S3Service" "S3Session"
@@ -48,14 +44,13 @@ data Env = Env {
   , tzs            :: !(TimeZoneSeries)
   }
 
--- Date,Ticker,TimeBarStart,FirstTradePrice,HighTradePrice,LowTradePrice,LastTradePrice,VolumeWeightPrice,Volume,TotalTrades
 data Price = Price
   { priceTime :: UTCTime
   , open      :: Double
   , high      :: Double
   , low       :: Double
   , close     :: Double
-  , volume    :: Double
+  , volume    :: Int
   , vwap      :: Maybe Double
   } deriving (Show, Generic, ToJSON)
 
@@ -65,15 +60,15 @@ data PartialPrice = PartialPrice
   , high        :: Double
   , low         :: Double
   , close       :: Double
-  , volume      :: Double
-  , vwap        :: Maybe Double
+  , volume      :: Int
+  , partialVwap :: Maybe Double
   } deriving (Show, Generic, FromJSON, ToJSON, Eq)
 
 instance Ord Price where
-  compare = comparing priceTime
+  compare = comparing priceTime <> comparing vwap
 
 instance Ord PartialPrice where
-  compare = comparing partialTime
+  compare = comparing partialTime <> comparing partialVwap
 
 instance Eq Price where
   (Price d1 _ _ _ _ _ _) == (Price d2 _ _ _ _ _ _) = d1 == d2
@@ -166,5 +161,5 @@ parsePartialPrices =
       , low         = read low'
       , close       = read close'
       , volume      = read volume'
-      , vwap        = Nothing
+      , partialVwap = Nothing
       }

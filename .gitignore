@@ -8,3 +8,4 @@ chef-cache
 *.pid
 *.out
 algoseek-data
+csv-data
