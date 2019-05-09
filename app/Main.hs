@@ -5,6 +5,9 @@
 
 module Main where
 
+import           AlgoSeek                           (importAlgoSeek)
+import           AWS                                (getLatestJSONFileRemote,
+                                                     tslaqPricesBucket)
 import           Control.Lens                       ((&), (.~))
 import           Control.Monad.Reader
 import           Control.Monad.Trans.AWS            (Credentials (..),
@@ -25,18 +28,17 @@ import           System.Log.Logger                  (Logger, Priority (..),
                                                      removeAllHandlers,
                                                      setLevel,
                                                      updateGlobalLogger)
-import           TSLAQPrices                        (getLatestJSONFileRemote,
-                                                     importAlgoSeek,
-                                                     localPricesFolder,
-                                                     tslaqPricesBucket,
-                                                     updatePrices)
+import           TSLAQPrices                        (updatePrices)
 import           Types                              (Env (..), s3Service,
                                                      secretsManagerService)
+
+localDirectory :: FilePath
+localDirectory = "/var/local/tslaq-prices/"
 
 tslaqPricesLogger :: IO Logger
 tslaqPricesLogger = do
   _ <- getLogger "main"
-  h <- fileHandler (localPricesFolder ++ "debug.log") DEBUG >>= \lh ->
+  h <- fileHandler (localDirectory ++ "debug.log") DEBUG >>= \lh ->
     return $ setFormatter
       lh
       (simpleLogFormatter "[$time - $loggername - $prio] $msg")
@@ -88,13 +90,15 @@ constructEnv = do
   c               <- getAWSConfig
   s3Session'      <- connect c s3Service
   secretsSession' <- connect c secretsManagerService
+  let ld = localDirectory
   tzs' <- getTimeZoneSeriesFromOlsonFile ("/usr/share/zoneinfo/US/Eastern")
   pure $ Env
-        { envLog         = el
-        , s3Session      = s3Session'
-        , secretsSession = secretsSession'
-        , tzs            = tzs'
-        }
+    { envLog         = el
+    , s3Session      = s3Session'
+    , secretsSession = secretsSession'
+    , tzs            = tzs'
+    , localDir       = ld
+    }
 
 
 main :: IO ()

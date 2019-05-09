@@ -42,6 +42,7 @@ data Env = Env {
   , s3Session      :: !(TypedSession S3Service)
   , secretsSession :: !(TypedSession SMService)
   , tzs            :: !(TimeZoneSeries)
+  , localDir       :: !(FilePath)
   }
 
 data Price = Price
