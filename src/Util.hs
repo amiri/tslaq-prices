@@ -44,11 +44,11 @@ convertPartialPrice t p =
 
 convertPartialPriceResponse
   :: TimeZoneSeries -> PartialPriceResponse -> PriceResponse
-convertPartialPriceResponse t pp =
-  let lr  = localTimeToUTC' t (lastRefreshed (pp :: PartialPriceResponse))
+convertPartialPriceResponse tzs pp =
+  let lr  = localTimeToUTC' tzs (lastRefreshed (pp :: PartialPriceResponse))
       tz  = "UTC"
       sym = ticker (pp :: PartialPriceResponse)
-      np  = map (convertPartialPrice t) (partialPrices pp)
+      np  = map (convertPartialPrice tzs) (partialPrices pp)
   in  PriceResponse
         { lastRefreshed = lr
         , ticker        = sym
