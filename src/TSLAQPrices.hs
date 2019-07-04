@@ -58,10 +58,10 @@ updatePrices = do
   let tzs' = tzs env
   savedPrices <- saved
   newPrices   <- downloadPrices
-  currentTime <- liftIO $ getCurrentTime
   let new' = convertPartialPriceResponse tzs' (fromJust newPrices)
   let combinedPrices = combinePrices (prices (savedPrices :: SavedPrices))
                                      (prices (new' :: PriceResponse))
+  currentTime <- liftIO $ getCurrentTime
   let updatedPrices = SavedPrices currentTime "UTC" "TSLA" combinedPrices
   _ <- uploadPrices updatedPrices
   logMessage "updatePrices OK"

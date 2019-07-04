@@ -10,7 +10,7 @@ import           Control.Monad              (void)
 import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Control.Monad.Reader       (MonadReader, ask)
 import           Data.Aeson                 (decode, encode)
-import qualified Data.ByteString.Lazy       as B (ByteString, writeFile)
+import qualified Data.ByteString.Lazy       as B (ByteString)
 import           Data.Conduit.Combinators   (sinkLazy)
 import           Data.Digest.Pure.MD5       (MD5Digest, md5)
 import           Data.List                  (sortBy)
@@ -41,7 +41,6 @@ emptyPrices :: B.ByteString
 emptyPrices = encodeUtf8
   ( "{\"lastRefreshed\":\"1970-01-01T00:00:00Z\",\"timeZone\":\"UTC\",\"ticker\":\"TSLA\",\"prices\":[{\"priceTime\":\"1970-01-01T00:00:00Z\",\"open\":0.00,\"high\":0.00,\"low\":0.00,\"close\":0.00,\"volume\":0,\"vwap\":null}]}"
   )
-
 
 getApiKey :: Text -> SMSession -> IO Text
 getApiKey s = withAWS $ do
@@ -111,11 +110,7 @@ importLatestJSONFile = do
 uploadPrices :: (MonadReader Types.Env m, MonadIO m) => SavedPrices -> m ()
 uploadPrices ps = do
   env <- ask
-  let f             = localDir env
   let u             = encode ps
   let h             = md5 u
-  let localFilename = f ++ "prices-" ++ (show h) ++ ".json"
-  liftIO $ B.writeFile localFilename u
   liftIO $ uploadToS3 tslaqPricesBucket u h (s3Session env)
   logMessage "uploadPrices OK"
-

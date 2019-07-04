@@ -97,7 +97,6 @@ instance FromJSON APIKey where
       apiKey <- obj .: "key"
       return APIKey {..}
 
-
 data SavedPrices = SavedPrices
   { lastRefreshed :: UTCTime
   , timeZone      :: T.Text

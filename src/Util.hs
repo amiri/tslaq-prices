@@ -12,6 +12,7 @@ import           Control.Monad.Reader                (MonadReader, ask)
 import           Data.List                           (nub, sort)
 import           Data.Time                           (UTCTime (..),
                                                       fromGregorian)
+import           Data.Time.LocalTime.TimeZone.Olson  (getTimeZoneSeriesFromOlsonFile)
 import           Data.Time.LocalTime.TimeZone.Series (TimeZoneSeries,
                                                       localTimeToUTC')
 import           System.Log.Logger                   (Priority (..), logL)
@@ -62,3 +63,7 @@ combinePrices xs ys =
     $  nub
     $  xs
     ++ ys
+
+getEasternTimeZoneSeries :: IO TimeZoneSeries
+getEasternTimeZoneSeries =
+  getTimeZoneSeriesFromOlsonFile ("/usr/share/zoneinfo/US/Eastern")

@@ -9,30 +9,40 @@
 
 module AlgoSeek where
 
-import           AWS                    (saved, uploadPrices)
+import           AWS                                 (saved, uploadPrices)
 import           Codec.Archive.Zip
-import           Control.Monad.IO.Class (MonadIO, liftIO)
-import           Control.Monad.Reader   (MonadReader, ask)
-import qualified Data.ByteString.Lazy   as B (readFile)
-import           Data.Csv               (DefaultOrdered (..),
-                                         FromNamedRecord (..), ToField (..),
-                                         ToNamedRecord (..), (.:))
-import qualified Data.Csv               as CSV
-import           Data.List              (groupBy, nub, sort)
-import           Data.List.Split        (splitOn)
-import qualified Data.Map.Strict        as M
-import           Data.Time              (LocalTime, defaultTimeLocale,
-                                         formatTime, parseTimeOrError)
-import           Data.Time              (LocalTime (..), TimeOfDay (..),
-                                         getCurrentTime)
-import qualified Data.Vector            as V
-import           System.Directory       (createDirectoryIfMissing,
-                                         listDirectory)
+import           Control.Monad.IO.Class              (MonadIO, liftIO)
+import           Control.Monad.Reader                (MonadReader, ask)
+import qualified Data.ByteString.Lazy                as B (readFile)
+import           Data.Csv                            (DefaultOrdered (..),
+                                                      FromNamedRecord (..),
+                                                      ToField (..),
+                                                      ToNamedRecord (..), (.:))
+import qualified Data.Csv                            as CSV
+import           Data.List                           (groupBy, nub, sort)
+import           Data.List.Split                     (splitOn)
+import qualified Data.Map.Strict                     as M
+import           Data.Time                           (LocalTime (..),
+                                                      TimeOfDay (..),
+                                                      UTCTime (..), addUTCTime,
+                                                      defaultTimeLocale,
+                                                      formatTime,
+                                                      getCurrentTime,
+                                                      parseTimeOrError,
+                                                      timeOfDayToTime,
+                                                      timeToTimeOfDay)
+import           Data.Time.LocalTime.TimeZone.Series (TimeZoneSeries)
+import qualified Data.Vector                         as V
+import           System.Directory                    (createDirectoryIfMissing,
+                                                      listDirectory)
 import           Text.Regex.PCRE
-import           Types                  (Env (..), PartialPrice (..),
-                                         SavedPrices (..))
-import           Util                   (combinePrices, convertPartialPrice,
-                                         logMessage)
+import           Types                               (Env (..),
+                                                      PartialPrice (..),
+                                                      Price (..),
+                                                      SavedPrices (..))
+import           Util                                (combinePrices,
+                                                      convertPartialPrice,
+                                                      logMessage)
 
 -- Date,Ticker,TimeBarStart,FirstTradePrice,HighTradePrice,LowTradePrice,LastTradePrice,VolumeWeightPrice,Volume,TotalTrades
 instance FromNamedRecord PartialPrice where
@@ -70,44 +80,51 @@ getUnzipFolder :: EntrySelector -> FilePath
 getUnzipFolder entry =
   "csv-data/" <> ((splitOn "." (unEntrySelector entry)) !! 0)
 
-summarizeRecords :: [PartialPrice] -> PartialPrice
-summarizeRecords pps =
-  let p  = head pps
-      l  = last pps
-      ts = timeStart (partialTime p)
-      pt = LocalTime (localDay $ partialTime p)
-                     (TimeOfDay ((todHour (localTimeOfDay ts)) + 1) 30 0)
-      open'   = open (p :: PartialPrice)
-      close'  = close (l :: PartialPrice)
-      high'   = maximum $ map (\p1 -> high (p1 :: PartialPrice)) pps
-      low'    = minimum $ map (\p2 -> low (p2 :: PartialPrice)) pps
-      volume' = sum $ map (\p3 -> volume (p3 :: PartialPrice)) pps
-      vwap'   = partialVwap (l :: PartialPrice)
-  in  PartialPrice
-        { partialTime = pt
-        , open        = open'
-        , close       = close'
-        , high        = high'
-        , low         = low'
-        , volume      = volume'
-        , partialVwap = vwap'
+summarizeRecords :: [Price] -> Price
+summarizeRecords ps =
+  let p       = head ps
+      l       = last ps
+      ts      = timeStart (priceTime p)
+      te      = addUTCTime (realToFrac (3600 :: Integer)) ts
+      open'   = open (p :: Price)
+      close'  = close (l :: Price)
+      high'   = maximum $ map (\p1 -> high (p1 :: Price)) ps
+      low'    = minimum $ map (\p2 -> low (p2 :: Price)) ps
+      volume' = sum $ map (\p3 -> volume (p3 :: Price)) ps
+      vwap'   = vwap (l :: Price)
+  in  Price
+        { priceTime = te
+        , open      = open'
+        , close     = close'
+        , high      = high'
+        , low       = low'
+        , volume    = volume'
+        , vwap      = vwap'
         }
 
-belongsToHour :: PartialPrice -> PartialPrice -> Bool
+belongsToHour :: Price -> Price -> Bool
 belongsToHour p1 p2 =
-  let start1 = timeStart (partialTime p1)
-      start2 = timeStart (partialTime p2)
+  let start1 = timeStart (priceTime p1)
+      start2 = timeStart (priceTime p2)
   in  start1 == start2
 
-groupByHour :: [PartialPrice] -> [[PartialPrice]]
+groupByHour :: [Price] -> [[Price]]
 groupByHour = groupBy belongsToHour
 
-timeStart :: LocalTime -> LocalTime
-timeStart lt = case todMin (localTimeOfDay lt) < 30 of
-  True ->
-    LocalTime (localDay lt) (TimeOfDay ((todHour (localTimeOfDay lt)) - 1) 30 0)
-  False ->
-    LocalTime (localDay lt) (TimeOfDay (todHour (localTimeOfDay lt)) 30 0)
+timeStart :: UTCTime -> UTCTime
+timeStart UTCTime { utctDay = tsd, utctDayTime = tst } =
+  let t = timeToTimeOfDay tst
+      h = todHour t
+      m = todMin t
+      s = todSec t
+      u = UTCTime tsd tst
+      UTCTime { utctDay = utsd, utctDayTime = utst } =
+        addUTCTime (realToFrac (-3600 :: Integer)) u
+      ut = timeToTimeOfDay utst
+      uh = todHour ut
+  in  case (m < 30 && s <= 59) of
+        True  -> UTCTime utsd (timeOfDayToTime (TimeOfDay uh 30 0))
+        False -> UTCTime tsd (timeOfDayToTime (TimeOfDay h 30 0))
 
 parseCSV :: FilePath -> IO (V.Vector PartialPrice)
 parseCSV f = do
@@ -115,6 +132,11 @@ parseCSV f = do
   case CSV.decodeByName c of
     Left  err -> fail err
     Right d   -> pure $ snd d
+
+partialPriceVectorToPrices
+  :: [[V.Vector PartialPrice]] -> TimeZoneSeries -> [Price]
+partialPriceVectorToPrices v tzs =
+  map (convertPartialPrice tzs) $ sort $ V.toList $ V.concat $ concat v
 
 -- csv to records
 -- records to json
@@ -149,16 +171,12 @@ importAlgoSeek = do
       pure csvData'
     )
     tickerDirs'
-  let pps =
-        map (convertPartialPrice tzs' . summarizeRecords)
-          $ groupByHour
-          $ sort
-          $ V.toList
-          $ V.concat
-          $ concat csvData
+  let ps = map summarizeRecords $ groupByHour $ partialPriceVectorToPrices
+        csvData
+        tzs'
   savedPrices <- saved
   logMessage $ show savedPrices
-  let combinedPrices = combinePrices (prices (savedPrices :: SavedPrices)) pps
+  let combinedPrices = combinePrices (prices (savedPrices :: SavedPrices)) ps
   currentTime <- liftIO $ getCurrentTime
   let updatedPrices = SavedPrices currentTime "UTC" "TSLA" combinedPrices
   _ <- uploadPrices updatedPrices
