@@ -2,7 +2,8 @@ flags: {}
 packages:
 - .
 extra-deps:
-- amazonka-secretsmanager-1.6.1
-- aws-easy-0.1.0.2
-- tasty-hedgehog-0.2.0.0@sha256:83a8b777fa472040979e44dba43c32441f55d5ddb9641a4d53deee4b0e09fa34
-resolver: lts-13.26
+  - amazonka-secretsmanager-1.6.1@sha256:f3e7266e8b19b214c721c49c50d24b7a6cc1ed280a1e481eabf08dc507e38f5d
+  - aws-easy-0.1.0.2@sha256:ef331eb24243567bff2a08401d327680d8d19cafe5c35c6cc588eceef9da46a1
+  - tasty-hedgehog-1.0.0.1@sha256:cdcf60a29195bd0d819d3018c11db2e0deb7c6e559ad940c49409a5a7a982f83
+  - hedgehog-1.0@sha256:440dafedac48a34eac3871f8622b215462cfc0708536cb0458b7a8cf38247c69
+resolver: lts-13.27
