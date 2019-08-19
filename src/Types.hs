@@ -8,6 +8,7 @@
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Types where
 
@@ -15,13 +16,21 @@ import           Data.Aeson                          (parseJSON, withObject,
                                                       (.:))
 import           Data.Aeson.Types                    (FromJSON, Parser, ToJSON,
                                                       Value (..))
+import           Data.Csv                            (DefaultOrdered (..),
+                                                      FromNamedRecord (..),
+                                                      ToField (..),
+                                                      ToNamedRecord (..))
+import qualified Data.Csv                            as CSV
 import qualified Data.HashMap.Strict                 as HM (toList)
 import           Data.Int                            ()
 import           Data.List                           (sort)
 import           Data.List.Split                     (splitOn)
 import           Data.Ord                            (Ord (..), comparing)
 import qualified Data.Text                           as T (Text, unpack)
-import           Data.Time                           (UTCTime)
+import           Data.Time                           (UTCTime,
+                                                      defaultTimeLocale,
+                                                      formatTime,
+                                                      parseTimeOrError)
 import           Data.Time.Calendar                  (fromGregorian)
 import           Data.Time.LocalTime                 (LocalTime (..),
                                                       TimeOfDay (..))
@@ -36,6 +45,8 @@ import           System.Log.Logger                   (Logger)
 
 wrapAWSService 's3 "S3Service" "S3Session"
 wrapAWSService 'secretsManager "SMService" "SMSession"
+
+data SummaryType = Hourly | Daily
 
 data Env = Env {
     envLog         :: !Logger
@@ -65,6 +76,34 @@ data PartialPrice = PartialPrice
   , partialVwap :: Maybe Double
   } deriving (Show, Generic, FromJSON, ToJSON, Eq)
 
+-- Date,Ticker,TimeBarStart,FirstTradePrice,HighTradePrice,LowTradePrice,LastTradePrice,VolumeWeightPrice,Volume,TotalTrades
+instance FromNamedRecord PartialPrice where
+  parseNamedRecord m = do
+    d       <- m CSV..: "Date"
+    t       <- m CSV..: "TimeBarStart"
+    open'   <- m CSV..: "FirstTradePrice"
+    high'   <- m CSV..: "HighTradePrice"
+    low'    <- m CSV..: "LowTradePrice"
+    close'  <- m CSV..: "LastTradePrice"
+    vwap'   <- m CSV..: "VolumeWeightPrice"
+    volume' <- m CSV..: "Volume"
+    let dt =
+          parseTimeOrError True defaultTimeLocale "%Y%m%d%H:%M" (d ++ t) :: LocalTime
+    return $ PartialPrice { partialTime = dt
+                          , open        = read open'
+                          , high        = read high'
+                          , low         = read low'
+                          , close       = read close'
+                          , volume      = read volume'
+                          , partialVwap = Just (read vwap')
+                          }
+
+instance ToNamedRecord PartialPrice
+instance DefaultOrdered PartialPrice
+
+instance ToField LocalTime where
+  toField = toField . formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S"
+
 instance Ord Price where
   compare = comparing priceTime <> comparing vwap
 
@@ -75,16 +114,15 @@ instance Eq Price where
   (Price d1 _ _ _ _ _ _) == (Price d2 _ _ _ _ _ _) = d1 == d2
 
 instance FromJSON Price where
-  parseJSON =
-    withObject "Price" $ \obj -> do
-      priceTime <- obj .: "priceTime"
-      open <- obj .: "open"
-      high <- obj .: "high"
-      low <- obj .: "low"
-      close <- obj .: "close"
-      volume <- obj .: "volume"
-      vwap <- obj .: "vwap"
-      return Price {..}
+  parseJSON = withObject "Price" $ \obj -> do
+    priceTime <- obj .: "priceTime"
+    open      <- obj .: "open"
+    high      <- obj .: "high"
+    low       <- obj .: "low"
+    close     <- obj .: "close"
+    volume    <- obj .: "volume"
+    vwap      <- obj .: "vwap"
+    return Price { .. }
 
 
 data APIKey = APIKey {
@@ -92,10 +130,9 @@ data APIKey = APIKey {
   } deriving (Show, Generic, ToJSON)
 
 instance FromJSON APIKey where
-  parseJSON =
-    withObject "APIKey" $ \obj -> do
-      apiKey <- obj .: "key"
-      return APIKey {..}
+  parseJSON = withObject "APIKey" $ \obj -> do
+    apiKey <- obj .: "key"
+    return APIKey { .. }
 
 data SavedPrices = SavedPrices
   { lastRefreshed :: UTCTime
@@ -119,22 +156,19 @@ data PartialPriceResponse = PartialPriceResponse
   } deriving (Eq, Show, Generic, ToJSON)
 
 instance FromJSON PartialPriceResponse where
-  parseJSON =
-    withObject "PartialPriceResponse" $ \obj -> do
-      metaData <- obj .: "Meta Data"
-      sym <- metaData .: "2. Symbol"
-      dt <- metaData .: "3. Last Refreshed"
-      tz <- metaData .: "6. Time Zone"
-      let localTime' = convertToLocalTime dt
-      pPrices' <- obj .: "Time Series (60min)"
-      pPrices'' <- parsePartialPrices pPrices'
-      pure $
-        PartialPriceResponse
-          { lastRefreshed = localTime'
-          , timeZone = tz
-          , ticker = sym
-          , partialPrices = sort pPrices''
-          }
+  parseJSON = withObject "PartialPriceResponse" $ \obj -> do
+    metaData <- obj .: "Meta Data"
+    sym      <- metaData .: "2. Symbol"
+    dt       <- metaData .: "3. Last Refreshed"
+    tz       <- metaData .: "6. Time Zone"
+    let localTime' = convertToLocalTime dt
+    pPrices'  <- obj .: "Time Series (60min)"
+    pPrices'' <- parsePartialPrices pPrices'
+    pure $ PartialPriceResponse { lastRefreshed = localTime'
+                                , timeZone      = tz
+                                , ticker        = sym
+                                , partialPrices = sort pPrices''
+                                }
 
 convertToLocalTime :: T.Text -> LocalTime
 convertToLocalTime t =
@@ -146,20 +180,19 @@ convertToLocalTime t =
         (TimeOfDay (read h :: Int) (read m' :: Int) (read s))
 
 parsePartialPrices :: Value -> Parser [PartialPrice]
-parsePartialPrices =
-  withObject "prices" $ \o -> for (HM.toList o) $ \(lt, Object priceData) -> do
+parsePartialPrices = withObject "prices" $ \o ->
+  for (HM.toList o) $ \(lt, Object priceData) -> do
     let localTime' = convertToLocalTime lt
     open'   <- priceData .: "1. open"
     high'   <- priceData .: "2. high"
     low'    <- priceData .: "3. low"
     close'  <- priceData .: "4. close"
     volume' <- priceData .: "5. volume"
-    pure $ PartialPrice
-      { partialTime = localTime'
-      , open        = read open'
-      , high        = read high'
-      , low         = read low'
-      , close       = read close'
-      , volume      = read volume'
-      , partialVwap = Nothing
-      }
+    pure $ PartialPrice { partialTime = localTime'
+                        , open        = read open'
+                        , high        = read high'
+                        , low         = read low'
+                        , close       = read close'
+                        , volume      = read volume'
+                        , partialVwap = Nothing
+                        }

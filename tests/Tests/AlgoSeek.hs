@@ -13,17 +13,18 @@ import           Test.Tasty
 import           Test.Tasty.Hspec                    as Hspec
 import           Types                               (PartialPrice, Price (..))
 import           Util                                (getEasternTimeZoneSeries)
+import Aggregations (hourStart, groupByHour, summarizeHourRecords)
 
 tests :: TestTree
 tests = testGroup
   "AlgoSeek"
-  [ unsafePerformIO (testSpec "timeStart" spec_timeStart)
-  , unsafePerformIO (testSpec "summarizeRecords" spec_summarizeRecords)
+  [ unsafePerformIO (testSpec "hourStart" spec_hourStart)
+  , unsafePerformIO (testSpec "summarizeHourRecords" spec_summarizeHourRecords)
   , unsafePerformIO (testSpec "groupByHour" spec_groupByHour)
   ]
 
-spec_timeStart :: SpecWith ()
-spec_timeStart = do
+spec_hourStart :: SpecWith ()
+spec_hourStart = do
   let d    = fromGregorian 2019 4 18
       tod1 = TimeOfDay 5 29 59
       tod2 = TimeOfDay 5 30 0
@@ -33,12 +34,12 @@ spec_timeStart = do
       t3   = UTCTime d (timeOfDayToTime tod3)
       et1  = UTCTime d (timeOfDayToTime (TimeOfDay 4 30 0))
       et2  = UTCTime d (timeOfDayToTime (TimeOfDay 5 30 0))
-  it "hour:29:59 timeStart is (hour-1):30:00" $ do
-    timeStart t1 `shouldBe` et1
-  it "hour:30:00 timeStart is hour:30:00" $ do
-    timeStart t2 `shouldBe` et2
-  it "hour:30:01 timeStart is hour:30:00" $ do
-    timeStart t3 `shouldBe` et2
+  it "hour:29:59 hourStart is (hour-1):30:00" $ do
+    hourStart t1 `shouldBe` et1
+  it "hour:30:00 hourStart is hour:30:00" $ do
+    hourStart t2 `shouldBe` et2
+  it "hour:30:01 hourStart is hour:30:00" $ do
+    hourStart t3 `shouldBe` et2
 
 withCsvAndTimeZoneSeries :: IO (V.Vector PartialPrice, TimeZoneSeries)
 withCsvAndTimeZoneSeries = do
@@ -46,14 +47,14 @@ withCsvAndTimeZoneSeries = do
   csv <- parseCSV "tests/data/20190418.csv"
   pure (csv, tzs)
 
-spec_summarizeRecords :: SpecWith ()
-spec_summarizeRecords = do
+spec_summarizeHourRecords :: SpecWith ()
+spec_summarizeHourRecords = do
   Hspec.before withCsvAndTimeZoneSeries $ do
     it "summarizes correctly" $ \(csv, tzs) -> do
       let
         ps      = partialPriceVectorToPrices [[csv]] tzs
         grouped = groupByHour ps
-        pps     = map summarizeRecords grouped
+        pps     = map summarizeHourRecords grouped
         expected =
           [ Price
             { priceTime = UTCTime

@@ -3,9 +3,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE OverloadedStrings     #-}
 
-module Util
-
-where
+module Util where
 
 import           Control.Monad.IO.Class              (MonadIO, liftIO)
 import           Control.Monad.Reader                (MonadReader, ask)
@@ -32,15 +30,14 @@ logMessage msg = do
 convertPartialPrice :: TimeZoneSeries -> PartialPrice -> Price
 convertPartialPrice t p =
   let pt = localTimeToUTC' t (partialTime p)
-  in  Price
-        { priceTime = pt
-        , open      = open (p :: PartialPrice)
-        , high      = high (p :: PartialPrice)
-        , low       = low (p :: PartialPrice)
-        , close     = close (p :: PartialPrice)
-        , volume    = volume (p :: PartialPrice)
-        , vwap      = partialVwap (p :: PartialPrice)
-        }
+  in  Price { priceTime = pt
+            , open      = open (p :: PartialPrice)
+            , high      = high (p :: PartialPrice)
+            , low       = low (p :: PartialPrice)
+            , close     = close (p :: PartialPrice)
+            , volume    = volume (p :: PartialPrice)
+            , vwap      = partialVwap (p :: PartialPrice)
+            }
 
 convertPartialPriceResponse
   :: TimeZoneSeries -> PartialPriceResponse -> PriceResponse
@@ -49,12 +46,11 @@ convertPartialPriceResponse tzs' pp =
       tz  = "UTC"
       sym = ticker (pp :: PartialPriceResponse)
       np  = map (convertPartialPrice tzs') (partialPrices pp)
-  in  PriceResponse
-        { lastRefreshed = lr
-        , ticker        = sym
-        , timeZone      = tz
-        , prices        = np
-        }
+  in  PriceResponse { lastRefreshed = lr
+                    , ticker        = sym
+                    , timeZone      = tz
+                    , prices        = np
+                    }
 
 combinePrices :: [Price] -> [Price] -> [Price]
 combinePrices xs ys =
