@@ -134,6 +134,15 @@ instance FromJSON APIKey where
     apiKey <- obj .: "key"
     return APIKey { .. }
 
+data HourlyAndDailyPrices = HourlyAndDailyPrices
+  { lastRefreshed :: UTCTime
+  , timeZone      :: T.Text
+  , ticker        :: T.Text
+  , hourly        :: SavedPrices
+  , daily         :: DailyPrices
+  , combined      :: Bool
+  } deriving (Eq, Show, Generic, ToJSON, FromJSON)
+
 data SavedPrices = SavedPrices
   { lastRefreshed :: UTCTime
   , timeZone      :: T.Text
@@ -147,6 +156,13 @@ data PriceResponse = PriceResponse
   , ticker        :: T.Text
   , prices        :: [Price]
   } deriving (Eq, Show, Generic, ToJSON)
+
+data DailyPrices = DailyPrices
+  { lastRefreshed :: LocalTime
+  , timeZone      :: T.Text
+  , ticker        :: T.Text
+  , partialPrices :: [PartialPrice]
+  } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 data PartialPriceResponse = PartialPriceResponse
   { lastRefreshed :: LocalTime

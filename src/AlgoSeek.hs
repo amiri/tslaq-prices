@@ -9,7 +9,9 @@
 
 module AlgoSeek where
 
-import           Aggregations                        (groupByHour,
+import           Aggregations                        (groupByESTDay,
+                                                      groupByHour,
+                                                      summarizeDailyRecords,
                                                       summarizeHourRecords)
 import           AWS                                 (saved, uploadPrices)
 import           Codec.Archive.Zip
@@ -21,17 +23,21 @@ import           Data.List                           (nub, sort)
 import           Data.List.Split                     (splitOn)
 import qualified Data.Map.Strict                     as M
 import           Data.Time                           (getCurrentTime)
-import           Data.Time.LocalTime.TimeZone.Series (TimeZoneSeries)
+import           Data.Time.LocalTime.TimeZone.Series (TimeZoneSeries,
+                                                      utcToLocalTime')
 import qualified Data.Vector                         as V
 import           System.Directory                    (createDirectoryIfMissing,
                                                       listDirectory)
-import           Text.Regex.PCRE
-import           Types                               (Env (..),
+import           Text.Regex.PCRE                     ((=~))
+import           Types                               (DailyPrices (..),
+                                                      Env (..),
+                                                      HourlyAndDailyPrices (..),
                                                       PartialPrice (..),
                                                       Price (..),
                                                       SavedPrices (..))
 import           Util                                (combinePrices,
                                                       convertPartialPrice,
+                                                      convertPriceToPartial,
                                                       logMessage)
 
 dataDir :: FilePath
@@ -91,8 +97,16 @@ importAlgoSeek = do
         tzs'
   savedPrices <- saved
   logMessage $ show savedPrices
-  let combinedPrices = combinePrices (prices (savedPrices :: SavedPrices)) ps
+  let mergedHourlyPrices =
+        combinePrices (prices (savedPrices :: SavedPrices)) ps
   currentTime <- liftIO $ getCurrentTime
-  let updatedPrices = SavedPrices currentTime "UTC" "TSLA" combinedPrices
-  _ <- uploadPrices updatedPrices
+  let hourly = SavedPrices currentTime "UTC" "TSLA" mergedHourlyPrices
+  let dailyPrices = map summarizeDailyRecords $ groupByESTDay $ map
+        (convertPriceToPartial (tzs env))
+        mergedHourlyPrices
+  let daily =
+        DailyPrices (utcToLocalTime' tzs' currentTime) "EST" "TSLA" dailyPrices
+  let combinedPrices =
+        HourlyAndDailyPrices currentTime "UTC" "TSLA" hourly daily True
+  _ <- uploadPrices combinedPrices
   logMessage "importAlgoSeek OK"

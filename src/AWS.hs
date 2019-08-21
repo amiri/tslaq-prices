@@ -29,7 +29,9 @@ import           Network.AWS.S3             (BucketName (..), ObjectKey (..),
 import           Network.AWS.S3.Types       (oKey, oLastModified)
 import           Network.AWS.SecretsManager (getSecretValue, gsvrsSecretString)
 import           System.FilePath            (FilePath, takeExtension)
+import           Text.Regex.PCRE
 import           Types                      (APIKey (..), Env (..),
+                                             HourlyAndDailyPrices (..),
                                              S3Session (..), SMSession (..),
                                              SavedPrices (..))
 import           Util                       (logMessage)
@@ -39,7 +41,7 @@ tslaqPricesBucket = "tslaq-prices"
 
 emptyPrices :: B.ByteString
 emptyPrices = encodeUtf8
-  ( "{\"lastRefreshed\":\"1970-01-01T00:00:00Z\",\"timeZone\":\"UTC\",\"ticker\":\"TSLA\",\"prices\":[{\"priceTime\":\"1970-01-01T00:00:00Z\",\"open\":0.00,\"high\":0.00,\"low\":0.00,\"close\":0.00,\"volume\":0,\"vwap\":null}]}"
+  ("{\"lastRefreshed\":\"1970-01-01T00:00:00Z\",\"timeZone\":\"UTC\",\"ticker\":\"TSLA\",\"prices\":[{\"priceTime\":\"1970-01-01T00:00:00Z\",\"open\":0.00,\"high\":0.00,\"low\":0.00,\"close\":0.00,\"volume\":0,\"vwap\":null}]}"
   )
 
 getApiKey :: Text -> SMSession -> IO Text
@@ -58,7 +60,7 @@ getLatestJSONFileRemote b = withAWS $ do
       reverse
         $  sortBy (comparing (^. oLastModified))
         $  filter
-             ( \o ->
+             (\o ->
                let k = unpack $ toText (o ^. oKey) in takeExtension k == ".json"
              )
         $  res
@@ -94,7 +96,10 @@ saved = do
     Nothing  -> return $ fromJust (decode emptyPrices :: Maybe SavedPrices)
     Just (d) -> do
       d' <- liftIO $ d
-      return $ fromJust $ decode d'
+      if (d' =~ ("combined" :: B.ByteString) :: Bool)
+        then pure
+          (hourly (fromJust $ (decode d' :: Maybe HourlyAndDailyPrices)))
+        else pure (fromJust $ decode d')
 
 importLatestJSONFile
   :: (MonadReader Types.Env m, MonadIO m) => m (Maybe (IO B.ByteString))
@@ -107,10 +112,11 @@ importLatestJSONFile = do
       let bs = readJSONFileRemote tslaqPricesBucket f (s3Session env)
       in  pure $ Just (bs)
 
-uploadPrices :: (MonadReader Types.Env m, MonadIO m) => SavedPrices -> m ()
+uploadPrices
+  :: (MonadReader Types.Env m, MonadIO m) => HourlyAndDailyPrices -> m ()
 uploadPrices ps = do
   env <- ask
-  let u             = encode ps
-  let h             = md5 u
+  let u = encode ps
+  let h = md5 u
   liftIO $ uploadToS3 tslaqPricesBucket u h (s3Session env)
   logMessage "uploadPrices OK"

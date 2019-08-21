@@ -12,7 +12,8 @@ import           Data.Time                           (UTCTime (..),
                                                       fromGregorian)
 import           Data.Time.LocalTime.TimeZone.Olson  (getTimeZoneSeriesFromOlsonFile)
 import           Data.Time.LocalTime.TimeZone.Series (TimeZoneSeries,
-                                                      localTimeToUTC')
+                                                      localTimeToUTC',
+                                                      utcToLocalTime')
 import           System.Log.Logger                   (Priority (..), logL)
 import           Types                               (Env (..),
                                                       PartialPrice (..),
@@ -26,6 +27,18 @@ logMessage msg = do
   env <- ask
   let l = envLog env
   liftIO $ logL l DEBUG msg
+
+convertPriceToPartial :: TimeZoneSeries -> Price -> PartialPrice
+convertPriceToPartial t p =
+  let pt = utcToLocalTime' t (priceTime p)
+  in  PartialPrice { partialTime = pt
+                   , open        = open (p :: Price)
+                   , high        = high (p :: Price)
+                   , low         = low (p :: Price)
+                   , close       = close (p :: Price)
+                   , volume      = volume (p :: Price)
+                   , partialVwap = vwap (p :: Price)
+                   }
 
 convertPartialPrice :: TimeZoneSeries -> PartialPrice -> Price
 convertPartialPrice t p =

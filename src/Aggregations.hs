@@ -28,6 +28,26 @@ summarizeHourRecords ps =
             , vwap      = vwap'
             }
 
+summarizeDailyRecords :: [PartialPrice] -> PartialPrice
+summarizeDailyRecords ps =
+  let p       = head ps
+      l       = last ps
+      ts      = estDayStart (partialTime p)
+      open'   = open (p :: PartialPrice)
+      close'  = close (l :: PartialPrice)
+      high'   = maximum $ map (\p1 -> high (p1 :: PartialPrice)) ps
+      low'    = minimum $ map (\p2 -> low (p2 :: PartialPrice)) ps
+      volume' = sum $ map (\p3 -> volume (p3 :: PartialPrice)) ps
+      vwap'   = partialVwap (l :: PartialPrice)
+  in  PartialPrice { partialTime = ts
+            , open      = open'
+            , close     = close'
+            , high      = high'
+            , low       = low'
+            , volume    = volume'
+            , partialVwap      = vwap'
+            }
+
 groupByHour :: [Price] -> [[Price]]
 groupByHour = groupBy belongsToHour
 

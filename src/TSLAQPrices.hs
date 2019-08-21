@@ -5,25 +5,34 @@
 
 module TSLAQPrices
   ( updatePrices
-  ) where
+  )
+where
 
-import           AlgoSeek               ()
+import           Aggregations                        (groupByESTDay,
+                                                      summarizeDailyRecords)
+import           AlgoSeek                            ()
 import           AWS
 import           Control.Lens
-import           Control.Monad.IO.Class (MonadIO, liftIO)
-import           Control.Monad.Reader   (MonadReader, ask)
-import           Data.Aeson             (decode)
-import qualified Data.ByteString.Char8  as C8 ()
-import           Data.Maybe             (fromJust)
-import           Data.Text              (Text)
-import           Data.Time              (getCurrentTime)
-import           Network.Wreq           (Options, defaults, getWith, param,
-                                         responseBody)
-import           Types                  (Env (..), PartialPriceResponse (..),
-                                         PriceResponse (..), SavedPrices (..))
-import           Util                   (combinePrices,
-                                         convertPartialPriceResponse,
-                                         logMessage)
+import           Control.Monad.IO.Class              (MonadIO, liftIO)
+import           Control.Monad.Reader                (MonadReader, ask)
+import           Data.Aeson                          (decode)
+import qualified Data.ByteString.Char8               as C8 ()
+import           Data.Maybe                          (fromJust)
+import           Data.Text                           (Text)
+import           Data.Time                           (getCurrentTime)
+import           Data.Time.LocalTime.TimeZone.Series (utcToLocalTime')
+import           Network.Wreq                        (Options, defaults,
+                                                      getWith, param,
+                                                      responseBody)
+import           Types                               (DailyPrices (..),
+                                                      Env (..),
+                                                      HourlyAndDailyPrices (..),
+                                                      PartialPriceResponse (..),
+                                                      PriceResponse (..),
+                                                      SavedPrices (..))
+import           Util                                (combinePrices, convertPartialPriceResponse,
+                                                      convertPriceToPartial,
+                                                      logMessage)
 
 downloadOpts :: Text -> Bool -> Options
 downloadOpts k getFull =
@@ -59,9 +68,16 @@ updatePrices = do
   savedPrices <- saved
   newPrices   <- downloadPrices
   let new' = convertPartialPriceResponse tzs' (fromJust newPrices)
-  let combinedPrices = combinePrices (prices (savedPrices :: SavedPrices))
-                                     (prices (new' :: PriceResponse))
+  let mergedHourlyPrices = combinePrices
+        (prices (savedPrices :: SavedPrices))
+        (prices (new' :: PriceResponse))
   currentTime <- liftIO $ getCurrentTime
-  let updatedPrices = SavedPrices currentTime "UTC" "TSLA" combinedPrices
-  _ <- uploadPrices updatedPrices
+  let h = SavedPrices currentTime "UTC" "TSLA" mergedHourlyPrices
+  let dailyPrices = map summarizeDailyRecords $ groupByESTDay $ map
+        (convertPriceToPartial (tzs env))
+        mergedHourlyPrices
+  let d =
+        DailyPrices (utcToLocalTime' tzs' currentTime) "EST" "TSLA" dailyPrices
+  let combinedPrices = HourlyAndDailyPrices currentTime "UTC" "TSLA" h d True
+  _ <- uploadPrices combinedPrices
   logMessage "updatePrices OK"
