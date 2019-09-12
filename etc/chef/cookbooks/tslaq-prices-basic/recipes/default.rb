@@ -34,8 +34,10 @@ directory '/var/local/tslaq-prices/bin' do
   action :create
 end
 
+binary = `find /tmp/deployments/tslaq-prices/.stack-work/install -wholename "*bin/tslaq-prices-exe"`
+Chef::Log.info("Binary: #{binary}")
 remote_file '/var/local/tslaq-prices/bin/tslaq-prices' do
-  source 'file:///tmp/deployments/tslaq-prices/.stack-work/install/x86_64-linux/lts-13.19/8.6.4/bin/tslaq-prices-exe'
+  source 'file://#{binary}'
   owner 'tslaq'
   group 'tslaq'
   mode '0755'

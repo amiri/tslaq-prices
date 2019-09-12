@@ -5,9 +5,9 @@ CHANNEL="stable"
 
 DEBIAN_FRONTEND=noninteractive apt-get -y update
 
-DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -o Dpkg::Options::="--force-confold" -o DPkg::Options::="--force-confdef" dist-upgrade
+DEBIAN_FRONTEND=noninteractive apt-get -y --allow-downgrades --allow-remove-essential --allow-change-held-packages -o Dpkg::Options::="--force-confold" -o DPkg::Options::="--force-confdef" dist-upgrade
 
-DEBIAN_FRONTEND=noninteractive apt-get install -y --force-yes -o Dpkg::Options::="--force-confold" -o DPkg::Options::="--force-confdef" apt-transport-https
+DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades --allow-remove-essential --allow-change-held-packages -o Dpkg::Options::="--force-confold" -o DPkg::Options::="--force-confdef" apt-transport-https
 
 wget -qO - https://packages.chef.io/chef.asc | sudo apt-key add -
 
@@ -15,4 +15,4 @@ echo "deb https://packages.chef.io/repos/apt/$CHANNEL $DISTRIBUTION main" > /etc
 
 DEBIAN_FRONTEND=noninteractive apt-get -y update
 
-DEBIAN_FRONTEND=noninteractive apt-get install -y --force-yes -o Dpkg::Options::="--force-confold" -o DPkg::Options::="--force-confdef" chef
+DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades --allow-remove-essential --allow-change-held-packages -o Dpkg::Options::="--force-confold" -o DPkg::Options::="--force-confdef" chef
