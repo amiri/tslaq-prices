@@ -37,7 +37,7 @@ end
 binary = `find /tmp/deployments/tslaq-prices/.stack-work/install -wholename "*bin/tslaq-prices-exe"`
 Chef::Log.info("Binary: #{binary}")
 remote_file '/var/local/tslaq-prices/bin/tslaq-prices' do
-  source 'file://#{binary}'
+  source "file://#{binary}"
   owner 'tslaq'
   group 'tslaq'
   mode '0755'
