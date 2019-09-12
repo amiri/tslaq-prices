@@ -37,8 +37,6 @@ end
 binary = `find /tmp/deployments/tslaq-prices/.stack-work/install -wholename "*bin/tslaq-prices-exe"`
 binary1 = binary.chomp
 
-Chef::Log.info("Binary: #{binary1}")
-
 remote_file '/var/local/tslaq-prices/bin/tslaq-prices' do
   source "file://#{binary1}"
   owner 'tslaq'
