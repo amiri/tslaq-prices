@@ -119,4 +119,4 @@ uploadPrices ps = do
   let u = encode ps
   let h = md5 u
   liftIO $ uploadToS3 tslaqPricesBucket u h (s3Session env)
-  logMessage "uploadPrices OK"
+  -- logMessage "uploadPrices OK"

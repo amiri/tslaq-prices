@@ -80,4 +80,5 @@ updatePrices = do
         DailyPrices (utcToLocalTime' tzs' currentTime) "EST" "TSLA" dailyPrices
   let combinedPrices = HourlyAndDailyPrices currentTime "UTC" "TSLA" h d True
   _ <- uploadPrices combinedPrices
-  logMessage "updatePrices OK"
+  -- logMessage "updatePrices OK"
+  pure ()
